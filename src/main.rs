@@ -123,8 +123,10 @@ async fn main() {
         let [_, window_height] = update_camera(&mut camera);
         camera::set_camera(&camera);
 
+        // Clear the background to the color Turbowarp dark mode uses
         window::clear_background(Color::from_hex(0x111111));
 
+        // Level
         shapes::draw_rectangle(
             -LOGICAL_SCREEN_WIDTH / 2.0,
             LOGICAL_SCREEN_HEIGHT / 2.0,
@@ -154,6 +156,7 @@ async fn main() {
             }
         }
 
+        // Player
         shapes::draw_rectangle(
             player.position[0] - Player::SIZE / 2.0 - LOGICAL_SCREEN_WIDTH / 2.0,
             player.position[1] - Player::SIZE / 2.0 - LOGICAL_SCREEN_HEIGHT / 2.0,
