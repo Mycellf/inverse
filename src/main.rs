@@ -64,7 +64,11 @@ async fn main() {
             if let Ok(mouse_index) = levels.index_of_position(mouse_position) {
                 levels[mouse_index] ^= true;
 
-                fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+                if player.is_intersecting(&levels) {
+                    levels[mouse_index] ^= true;
+                } else {
+                    fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+                }
             }
         }
 
