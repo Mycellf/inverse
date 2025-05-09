@@ -1,4 +1,5 @@
 pub mod level;
+pub mod player;
 
 use macroquad::{
     camera::{self, Camera2D},
@@ -9,6 +10,7 @@ use macroquad::{
 };
 
 use crate::level::Levels;
+use crate::player::Player;
 
 const START_IN_FULLSCREEN: bool = false;
 const SCREEN_WIDTH: f32 = LOGICAL_SCREEN_WIDTH;
@@ -33,12 +35,15 @@ async fn main() {
     let mut camera = Camera2D::default();
 
     let mut levels = Levels::new();
+    let mut player = Player::new();
 
     for x in 0..Levels::LEVEL_WIDTH {
         for y in 0..5 {
             levels[[x, y]] = true;
         }
     }
+
+    let mut update_time = 0.0;
 
     loop {
         if input::is_key_pressed(KeyCode::F11) {
@@ -59,6 +64,18 @@ async fn main() {
                 levels[mouse_index] ^= true;
             }
         }
+
+        update_time += macroquad::time::get_frame_time() * Player::UPDATES_PER_SECOND;
+        let updates = (update_time as usize).min(Player::MAXIMUM_UPDATES_PER_FRAME);
+
+        player.update_input();
+
+        for _ in 0..updates {
+            player.update(&mut levels);
+        }
+
+        update_time -= updates as f32;
+        update_time = update_time.min(1.0);
 
         update_camera(&mut camera);
         camera::set_camera(&camera);
@@ -93,6 +110,17 @@ async fn main() {
                 }
             }
         }
+
+        shapes::draw_rectangle(
+            player.position[0] - Player::SIZE / 2.0 - LOGICAL_SCREEN_WIDTH / 2.0,
+            player.position[1] - Player::SIZE / 2.0 - LOGICAL_SCREEN_HEIGHT / 2.0,
+            Player::SIZE,
+            Player::SIZE,
+            match player.air_kind {
+                true => colors::WHITE,
+                false => colors::BLACK,
+            },
+        );
 
         window::next_frame().await;
     }
