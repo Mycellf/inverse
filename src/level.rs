@@ -10,6 +10,8 @@ pub struct Levels {
     pub num_levels: usize,
     pub level_index: usize,
     pub x_offset: usize,
+    pub limited_gem: Option<usize>,
+    pub full_gem: Option<usize>,
 }
 
 impl Levels {
@@ -22,6 +24,8 @@ impl Levels {
             num_levels: 1,
             level_index: 0,
             x_offset: 0,
+            limited_gem: None,
+            full_gem: None,
         }
     }
 
@@ -31,6 +35,19 @@ impl Levels {
             Err([None, Some(IndexingError::TooBig)]) => Some(false),
             Err([None, Some(IndexingError::TooSmall)]) => Some(true),
             _ => None,
+        }
+    }
+
+    pub fn position_of_tile_index(&self, tile_index: usize) -> Option<[f32; 2]> {
+        let x = tile_index / Self::LEVEL_HEIGHT;
+        let y = tile_index % Self::LEVEL_HEIGHT;
+
+        if x >= self.x_offset && x < self.x_offset + Self::LEVEL_WIDTH {
+            Some([x as f32, y as f32])
+        } else if x == 0 && self.level_index == self.num_levels - 1 {
+            Some([(Self::LEVEL_WIDTH - 1) as f32, y as f32])
+        } else {
+            None
         }
     }
 
@@ -184,6 +201,18 @@ impl Display for Levels {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         for y in (0..Self::LEVEL_HEIGHT).rev() {
             for x in 0..(Self::LEVEL_WIDTH - 1) * self.num_levels {
+                let tile_index = x * Self::LEVEL_HEIGHT + y;
+
+                if Some(tile_index) == self.limited_gem {
+                    write!(f, "e")?;
+                    continue;
+                }
+
+                if Some(tile_index) == self.full_gem {
+                    write!(f, "E")?;
+                    continue;
+                }
+
                 let tile = self.tiles[x * Self::LEVEL_HEIGHT + y];
 
                 write!(
@@ -209,6 +238,9 @@ impl FromStr for Levels {
     fn from_str(s: &str) -> Result<Self, Self::Err> {
         let mut tiles = Vec::new();
 
+        let mut limited_gem = None;
+        let mut full_gem = None;
+
         let mut lines = s
             .lines()
             .map(|line| line.chars().peekable())
@@ -227,6 +259,24 @@ impl FromStr for Levels {
                 let tile = match character {
                     ' ' => false,
                     'x' => true,
+                    'e' => {
+                        if limited_gem.is_none() {
+                            limited_gem = Some(tiles.len());
+                        } else {
+                            return Err(ParseLevelError::DuplicateGem('e'));
+                        }
+
+                        false
+                    }
+                    'E' => {
+                        if full_gem.is_none() {
+                            full_gem = Some(tiles.len());
+                        } else {
+                            return Err(ParseLevelError::DuplicateGem('E'));
+                        }
+
+                        false
+                    }
                     character => {
                         return Err(ParseLevelError::InvalidTileCharacter(character));
                     }
@@ -271,6 +321,8 @@ impl FromStr for Levels {
             num_levels,
             level_index: 0,
             x_offset: 0,
+            limited_gem,
+            full_gem,
         })
     }
 }
@@ -282,4 +334,5 @@ pub enum ParseLevelError {
     InvalidTileCharacter(char),
     InvalidEndingCharacter(char),
     LineEndsEarly(usize),
+    DuplicateGem(char),
 }

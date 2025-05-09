@@ -184,6 +184,14 @@ impl Editor {
         levels: &mut Levels,
         player: &mut Player,
     ) -> bool {
+        for gem in [levels.limited_gem, levels.full_gem] {
+            if let Some(gem_index) = gem {
+                if tile_index == gem_index || tile_index == gem_index - 1 {
+                    return false;
+                }
+            }
+        }
+
         if let Editor::Limited { .. } = self {
             if levels.level_index == levels.num_levels - 1 || tile_index < Levels::LEVEL_HEIGHT {
                 return false;
