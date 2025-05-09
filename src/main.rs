@@ -89,19 +89,19 @@ async fn main() {
                 }
             }
 
-            if input::is_key_down(KeyCode::RightShift) || input::is_key_down(KeyCode::LeftShift) {
-                if input::is_key_pressed(KeyCode::I) {
-                    levels.insert_level(levels.level_index + 1);
-
-                    fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
-                }
-
-                if input::is_key_pressed(KeyCode::R) && levels.num_levels > 1 {
-                    levels.remove_level((levels.level_index + 1) % levels.num_levels);
-
-                    fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
-                }
-            }
+            // if input::is_key_down(KeyCode::RightShift) || input::is_key_down(KeyCode::LeftShift) {
+            //     if input::is_key_pressed(KeyCode::I) {
+            //         levels.insert_level(levels.level_index + 1);
+            //
+            //         fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+            //     }
+            //
+            //     if input::is_key_pressed(KeyCode::R) && levels.num_levels > 1 {
+            //         levels.remove_level((levels.level_index + 1) % levels.num_levels);
+            //
+            //         fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+            //     }
+            // }
         }
 
         if input::is_key_pressed(KeyCode::N) {
