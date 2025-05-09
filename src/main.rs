@@ -44,9 +44,11 @@ async fn main() {
         .unwrap();
     let mut player = Player::new();
 
-    let mut editor = Some(Editor::Limited {
+    let mut editor = Editor::Limited {
         last_selected: None,
-    });
+    };
+
+    let mut editor_enabled = false;
 
     let mut update_time = 0.0;
 
@@ -56,7 +58,7 @@ async fn main() {
             window::set_fullscreen(fullscreen);
         }
 
-        if let Some(editor) = &mut editor {
+        if editor_enabled {
             if input::is_mouse_button_pressed(MouseButton::Left) {
                 let mouse_position =
                     <[f32; 2]>::from(camera.screen_to_world(input::mouse_position().into()));
@@ -76,13 +78,20 @@ async fn main() {
             }
 
             if input::is_key_pressed(KeyCode::M) {
-                *editor = match editor {
-                    Editor::Limited { .. } => Editor::Full,
+                editor = match editor {
+                    Editor::Limited { .. } => {
+                        editor.force_undo_temporary_actions(&mut levels);
+                        Editor::Full
+                    }
                     Editor::Full => Editor::Limited {
                         last_selected: None,
                     },
                 }
             }
+        }
+
+        if input::is_key_pressed(KeyCode::N) {
+            editor_enabled ^= true;
         }
 
         if input::is_key_down(KeyCode::RightShift) || input::is_key_down(KeyCode::LeftShift) {
@@ -176,7 +185,7 @@ impl Editor {
         player: &mut Player,
     ) -> bool {
         if let Editor::Limited { .. } = self {
-            if levels.level_index == levels.num_levels - 1 {
+            if levels.level_index == levels.num_levels - 1 || tile_index < Levels::LEVEL_HEIGHT {
                 return false;
             }
         }
@@ -209,6 +218,18 @@ impl Editor {
                 false
             }
             Editor::Full => true,
+        }
+    }
+
+    pub fn force_undo_temporary_actions(&mut self, levels: &mut Levels) {
+        match self {
+            Editor::Limited { last_selected } => {
+                if let Some(tile_index) = *last_selected {
+                    levels.tiles[tile_index] ^= true;
+                    *last_selected = None;
+                }
+            }
+            Editor::Full => {}
         }
     }
 }
