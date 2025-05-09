@@ -45,8 +45,18 @@ impl Player {
     pub fn update(&mut self, levels: &mut Levels) {
         self.velocity[1] += self.gravity();
 
-        let x_collision = self.move_by(levels, [self.velocity[0], 0.0]);
-        let y_collision = self.move_by(levels, [0.0, self.velocity[1]]);
+        let Some(x_collision) = self.move_by(levels, [self.velocity[0], 0.0]) else {
+            if self.position[0] > crate::LOGICAL_SCREEN_WIDTH / 2.0 {
+                levels.next_level();
+                self.position[0] = Self::SIZE / 2.0;
+            } else {
+                levels.previous_level();
+                self.position[0] = crate::LOGICAL_SCREEN_WIDTH - Self::SIZE / 2.0;
+            }
+
+            return;
+        };
+        let y_collision = self.move_by(levels, [0.0, self.velocity[1]]).unwrap();
 
         if x_collision {
             self.velocity[0] = 0.0;
@@ -84,7 +94,7 @@ impl Player {
 
             self.air_kind ^= true;
 
-            if self.move_by(levels, [0.0, 0.0]) {
+            if self.move_by(levels, [0.0, 0.0]).unwrap() {
                 self.position = old_position;
                 self.air_kind ^= true;
             }
@@ -101,7 +111,7 @@ impl Player {
         }
     }
 
-    pub fn move_by(&mut self, levels: &Levels, amount: [f32; 2]) -> bool {
+    pub fn move_by(&mut self, levels: &Levels, amount: [f32; 2]) -> Option<bool> {
         self.position[0] += amount[0];
         self.position[1] += amount[1];
 
@@ -116,36 +126,32 @@ impl Player {
             let corner_position =
                 array::from_fn(|i| self.position[i] + corner[i] * Self::SIZE / 2.0);
 
-            let Ok(corner_index) = levels.index_of_position(corner_position) else {
-                continue;
-            };
-
-            if levels[corner_index] == self.air_kind {
+            if levels.get_from_position(corner_position)? == self.air_kind {
                 continue;
             }
 
             // There is a collision
             if amount[0] != 0.0 {
                 if amount[0] > 0.0 {
-                    self.position[0] = corner_index[0] as f32 - Self::SIZE / 2.0;
+                    self.position[0] = corner_position[0].floor() - Self::SIZE / 2.0;
                 } else {
-                    self.position[0] = corner_index[0] as f32 + 1.0 + Self::SIZE / 2.0;
+                    self.position[0] = corner_position[0].floor() + 1.0 + Self::SIZE / 2.0;
                 }
 
                 collision = true;
             } else if amount[1] != 0.0 {
                 if amount[1] > 0.0 {
-                    self.position[1] = corner_index[1] as f32 - Self::SIZE / 2.0;
+                    self.position[1] = corner_position[1].floor() - Self::SIZE / 2.0;
                 } else {
-                    self.position[1] = corner_index[1] as f32 + 1.0 + Self::SIZE / 2.0;
+                    self.position[1] = corner_position[1].floor() + 1.0 + Self::SIZE / 2.0;
                 }
 
                 collision = true;
             } else {
-                return true;
+                return Some(true);
             }
         }
 
-        collision
+        Some(collision)
     }
 }
