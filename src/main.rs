@@ -37,7 +37,7 @@ async fn main() {
     let mut levels = Levels::new();
     let mut player = Player::new();
 
-    for x in 0..Levels::LEVEL_WIDTH {
+    for x in 0..Levels::LEVEL_WIDTH - 1 {
         for y in 0..5 {
             levels[[x, y]] = true;
         }
