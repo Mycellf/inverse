@@ -59,20 +59,20 @@ impl Levels {
     }
 
     pub fn get(&self, index: [usize; 2]) -> Option<&bool> {
-        if self.is_index_in_bounds(index) {
-            let tile_index = unsafe { self.index_of_unchecked(index) };
+        let tile_index = self.index_of(index)?;
 
-            Some(&self.tiles[tile_index])
-        } else {
-            None
-        }
+        Some(&self.tiles[tile_index])
     }
 
     pub fn get_mut(&mut self, index: [usize; 2]) -> Option<&mut bool> {
-        if self.is_index_in_bounds(index) {
-            let tile_index = unsafe { self.index_of_unchecked(index) };
+        let tile_index = self.index_of(index)?;
 
-            Some(&mut self.tiles[tile_index])
+        Some(&mut self.tiles[tile_index])
+    }
+
+    pub fn index_of(&self, index: [usize; 2]) -> Option<usize> {
+        if self.is_index_in_bounds(index) {
+            Some(unsafe { self.index_of_unchecked(index) })
         } else {
             None
         }
