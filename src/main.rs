@@ -77,7 +77,7 @@ async fn main() {
         update_time -= updates as f32;
         update_time = update_time.min(1.0);
 
-        update_camera(&mut camera);
+        let [_, window_height] = update_camera(&mut camera);
         camera::set_camera(&camera);
 
         window::clear_background(Color::from_hex(0x111111));
@@ -86,15 +86,15 @@ async fn main() {
             -LOGICAL_SCREEN_WIDTH / 2.0,
             LOGICAL_SCREEN_HEIGHT / 2.0,
             LOGICAL_SCREEN_WIDTH,
-            (window_height() - LOGICAL_SCREEN_HEIGHT) / 2.0,
+            (window_height - LOGICAL_SCREEN_HEIGHT) / 2.0,
             colors::WHITE,
         );
 
         shapes::draw_rectangle(
             -LOGICAL_SCREEN_WIDTH / 2.0,
-            -window_height() / 2.0,
+            -window_height / 2.0,
             LOGICAL_SCREEN_WIDTH,
-            window_height() - (window_height() - LOGICAL_SCREEN_HEIGHT) / 2.0,
+            window_height - (window_height - LOGICAL_SCREEN_HEIGHT) / 2.0,
             colors::BLACK,
         );
 
@@ -126,12 +126,17 @@ async fn main() {
     }
 }
 
-fn update_camera(camera: &mut Camera2D) {
-    camera.zoom.x = 2.0 / window_width();
-    camera.zoom.y = -2.0 / window_height();
+fn update_camera(camera: &mut Camera2D) -> [f32; 2] {
+    let window_width = get_window_width();
+    let window_height = get_window_height();
+
+    camera.zoom.x = 2.0 / window_width;
+    camera.zoom.y = -2.0 / window_height;
+
+    [window_width, window_height]
 }
 
-fn window_width() -> f32 {
+fn get_window_width() -> f32 {
     let window_aspect = window::screen_width() / window::screen_height();
 
     if window_aspect < SCREEN_ASPECT {
@@ -141,7 +146,7 @@ fn window_width() -> f32 {
     }
 }
 
-fn window_height() -> f32 {
+fn get_window_height() -> f32 {
     let window_aspect = window::screen_width() / window::screen_height();
 
     if window_aspect > SCREEN_ASPECT {
