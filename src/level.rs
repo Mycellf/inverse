@@ -108,6 +108,8 @@ impl Levels {
     pub fn insert_level(&mut self, index: usize) {
         self.num_levels += 1;
 
+        assert!(index < self.num_levels);
+
         if self.level_index >= index {
             self.next_level();
         }
