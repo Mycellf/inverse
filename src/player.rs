@@ -15,8 +15,9 @@ pub struct Player {
 
 impl Player {
     pub const SIZE: f32 = 0.5;
-    pub const GRAVITY: f32 = 1.0 / 32.0 / 4.0;
+    pub const GRAVITY: f32 = 1.0 / 32.0 / Self::UPS_SCALE / Self::UPS_SCALE;
     pub const UPDATES_PER_SECOND: f32 = 60.0;
+    pub const UPS_SCALE: f32 = Self::UPDATES_PER_SECOND / 30.0;
     pub const MAXIMUM_UPDATES_PER_FRAME: usize = 5;
 
     pub fn new() -> Self {
@@ -73,7 +74,7 @@ impl Player {
                     if self.inputs_ready[0] {
                         self.inputs_ready[0] = false;
 
-                        self.velocity[1] = -15.0 * self.gravity();
+                        self.velocity[1] = -7.5 * Self::UPS_SCALE * self.gravity();
                         break 'outer;
                     }
                 }
@@ -84,8 +85,8 @@ impl Player {
 
         let x_input = self.inputs_down[3] as isize - self.inputs_down[1] as isize;
 
-        self.velocity[0] *= 0.9;
-        self.velocity[0] += x_input as f32 / 32.0 / 4.0;
+        self.velocity[0] *= 1.0 - 0.2 / Self::UPS_SCALE;
+        self.velocity[0] += x_input as f32 / 32.0 / Self::UPS_SCALE / Self::UPS_SCALE;
 
         if self.on_ground && self.inputs_ready[2] {
             self.inputs_ready[2] = false;
