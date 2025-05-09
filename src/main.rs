@@ -44,6 +44,10 @@ async fn main() {
         .unwrap();
     let mut player = Player::new();
 
+    let mut editor = Some(Editor::Limited {
+        last_selected: None,
+    });
+
     let mut update_time = 0.0;
 
     loop {
@@ -52,22 +56,31 @@ async fn main() {
             window::set_fullscreen(fullscreen);
         }
 
-        if input::is_mouse_button_pressed(MouseButton::Left) {
-            let mouse_position =
-                <[f32; 2]>::from(camera.screen_to_world(input::mouse_position().into()));
+        if let Some(editor) = &mut editor {
+            if input::is_mouse_button_pressed(MouseButton::Left) {
+                let mouse_position =
+                    <[f32; 2]>::from(camera.screen_to_world(input::mouse_position().into()));
 
-            let mouse_position = [
-                mouse_position[0] + LOGICAL_SCREEN_WIDTH / 2.0,
-                mouse_position[1] + LOGICAL_SCREEN_HEIGHT / 2.0,
-            ];
+                let mouse_position = [
+                    mouse_position[0] + LOGICAL_SCREEN_WIDTH / 2.0,
+                    mouse_position[1] + LOGICAL_SCREEN_HEIGHT / 2.0,
+                ];
 
-            if let Ok(mouse_index) = levels.index_of_position(mouse_position) {
-                levels[mouse_index] ^= true;
+                if let Ok(mouse_index) = levels.index_of_position(mouse_position) {
+                    let tile_index = levels.index_of(mouse_index).unwrap();
 
-                if player.is_intersecting(&levels) {
-                    levels[mouse_index] ^= true;
-                } else {
-                    fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+                    if editor.toggle_tile_index(tile_index, &mut levels, &mut player) {
+                        fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+                    }
+                }
+            }
+
+            if input::is_key_pressed(KeyCode::M) {
+                *editor = match editor {
+                    Editor::Limited { .. } => Editor::Full,
+                    Editor::Full => Editor::Limited {
+                        last_selected: None,
+                    },
                 }
             }
         }
@@ -144,6 +157,59 @@ async fn main() {
         );
 
         window::next_frame().await;
+    }
+}
+
+#[derive(Clone, Debug)]
+pub enum Editor {
+    Limited { last_selected: Option<usize> },
+    Full,
+}
+
+impl Editor {
+    /// Returns whether or not to write the changes made
+    #[must_use]
+    pub fn toggle_tile_index(
+        &mut self,
+        tile_index: usize,
+        levels: &mut Levels,
+        player: &mut Player,
+    ) -> bool {
+        if let Editor::Limited { .. } = self {
+            if levels.level_index == levels.num_levels - 1 {
+                return false;
+            }
+        }
+
+        levels.tiles[tile_index] ^= true;
+
+        if player.is_intersecting(levels) {
+            levels.tiles[tile_index] ^= true;
+            return false;
+        }
+
+        match self {
+            Editor::Limited { last_selected } => {
+                if *last_selected == Some(tile_index) {
+                    *last_selected = None;
+                } else if let Some(last_selected) = last_selected {
+                    levels.tiles[*last_selected] ^= true;
+
+                    if player.is_intersecting(levels) {
+                        levels.tiles[tile_index] ^= true;
+                        levels.tiles[*last_selected] ^= true;
+                        return false;
+                    }
+
+                    *last_selected = tile_index;
+                } else {
+                    *last_selected = Some(tile_index);
+                }
+
+                false
+            }
+            Editor::Full => true,
+        }
     }
 }
 
