@@ -78,17 +78,17 @@ async fn main() {
                 }
             }
 
-            if input::is_key_pressed(KeyCode::M) {
-                editor = match editor {
-                    Editor::Limited { .. } => {
-                        editor.force_undo_temporary_actions(&mut levels);
-                        Editor::Full
-                    }
-                    Editor::Full => Editor::Limited {
-                        last_selected: None,
-                    },
-                }
-            }
+            // if input::is_key_pressed(KeyCode::M) {
+            //     editor = match editor {
+            //         Editor::Limited { .. } => {
+            //             editor.force_undo_temporary_actions(&mut levels);
+            //             Editor::Full
+            //         }
+            //         Editor::Full => Editor::Limited {
+            //             last_selected: None,
+            //         },
+            //     }
+            // }
 
             // if input::is_key_down(KeyCode::RightShift) || input::is_key_down(KeyCode::LeftShift) {
             //     if input::is_key_pressed(KeyCode::I) {
@@ -105,9 +105,9 @@ async fn main() {
             // }
         }
 
-        if input::is_key_pressed(KeyCode::N) {
-            editor_enabled ^= true;
-        }
+        // if input::is_key_pressed(KeyCode::N) {
+        //     editor_enabled ^= true;
+        // }
 
         update_time += macroquad::time::get_frame_time() * Player::UPDATES_PER_SECOND;
         let updates = (update_time as usize).min(Player::MAXIMUM_UPDATES_PER_FRAME);
