@@ -108,7 +108,7 @@ impl Player {
 
             self.air_kind ^= true;
 
-            if self.move_by(levels, [0.0, 0.0]).unwrap() {
+            if self.is_intersecting(levels) {
                 self.position = old_position;
                 self.air_kind ^= true;
             }
@@ -121,6 +121,13 @@ impl Player {
         match self.air_kind {
             true => Self::GRAVITY,
             false => -Self::GRAVITY,
+        }
+    }
+
+    pub fn is_intersecting(&mut self, levels: &Levels) -> bool {
+        match self.move_by(levels, [0.0, 0.0]) {
+            Some(collision) => collision,
+            None => true,
         }
     }
 
