@@ -1,6 +1,8 @@
 pub mod level;
 pub mod player;
 
+use std::fs;
+
 use macroquad::{
     camera::{self, Camera2D},
     color::{Color, colors},
@@ -34,16 +36,11 @@ async fn main() {
 
     let mut camera = Camera2D::default();
 
-    let mut levels = Levels::new();
+    let mut levels = fs::read_to_string("levels.txt")
+        .unwrap()
+        .parse::<Levels>()
+        .unwrap();
     let mut player = Player::new();
-
-    for x in 0..Levels::LEVEL_WIDTH - 1 {
-        for y in 0..5 {
-            levels[[x, y]] = true;
-        }
-    }
-
-    levels.insert_level(1);
 
     let mut update_time = 0.0;
 

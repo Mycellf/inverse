@@ -1,6 +1,10 @@
-use std::ops::{Index, IndexMut};
+use std::{
+    fmt::Display,
+    ops::{Index, IndexMut},
+    str::FromStr,
+};
 
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Levels {
     pub tiles: Vec<bool>,
     pub num_levels: usize,
@@ -158,4 +162,108 @@ impl IndexMut<[usize; 2]> for Levels {
     fn index_mut(&mut self, index: [usize; 2]) -> &mut Self::Output {
         self.get_mut(index).unwrap()
     }
+}
+
+impl Display for Levels {
+    fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+        for y in (0..Self::LEVEL_HEIGHT).rev() {
+            for x in 0..(Self::LEVEL_WIDTH - 1) * self.num_levels {
+                let tile = self.tiles[x * Self::LEVEL_HEIGHT + y];
+
+                write!(
+                    f,
+                    "{}",
+                    match tile {
+                        true => 'x',
+                        false => ' ',
+                    }
+                )?;
+            }
+
+            write!(f, "|\n")?;
+        }
+
+        Ok(())
+    }
+}
+
+impl FromStr for Levels {
+    type Err = ParseLevelError;
+
+    fn from_str(s: &str) -> Result<Self, Self::Err> {
+        let mut tiles = Vec::new();
+
+        let mut lines = s
+            .lines()
+            .map(|line| line.chars().peekable())
+            .collect::<Box<[_]>>();
+
+        if lines.len() != Self::LEVEL_HEIGHT {
+            return Err(ParseLevelError::InvalidHeight);
+        }
+
+        loop {
+            for (i, line) in lines.iter_mut().enumerate().rev() {
+                let Some(character) = line.next() else {
+                    return Err(ParseLevelError::LineEndsEarly(i));
+                };
+
+                let tile = match character {
+                    ' ' => false,
+                    'x' => true,
+                    character => {
+                        return Err(ParseLevelError::InvalidTileCharacter(character));
+                    }
+                };
+
+                tiles.push(tile);
+            }
+
+            if lines[0].peek() == Some(&'|') {
+                for (i, mut line) in lines.into_iter().enumerate() {
+                    let next = line.next();
+
+                    match next {
+                        Some('|') => {
+                            if line.next().is_some() {
+                                return Err(ParseLevelError::InvalidTileCharacter('|'));
+                            }
+                        }
+                        Some(character) => {
+                            return Err(ParseLevelError::InvalidEndingCharacter(character));
+                        }
+                        None => {
+                            return Err(ParseLevelError::LineEndsEarly(i));
+                        }
+                    }
+                }
+
+                break;
+            }
+        }
+
+        const LEVEL_TILES: usize = (Levels::LEVEL_WIDTH - 1) * Levels::LEVEL_HEIGHT;
+
+        if tiles.len() % LEVEL_TILES != 0 {
+            return Err(ParseLevelError::InvalidWidth);
+        }
+
+        let num_levels = tiles.len() / LEVEL_TILES;
+
+        Ok(Self {
+            tiles,
+            num_levels,
+            level_index: 0,
+            x_offset: 0,
+        })
+    }
+}
+
+#[derive(Clone, Copy, Debug)]
+pub enum ParseLevelError {
+    InvalidHeight,
+    InvalidWidth,
+    InvalidTileCharacter(char),
+    InvalidEndingCharacter(char),
+    LineEndsEarly(usize),
 }
