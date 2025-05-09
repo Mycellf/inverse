@@ -10,7 +10,7 @@ pub struct Player {
     pub air_kind: bool,
     pub on_ground: bool,
     pub inputs_down: [bool; 4],
-    pub inputs_pressed: [bool; 4],
+    pub inputs_ready: [bool; 4],
 }
 
 impl Player {
@@ -29,7 +29,7 @@ impl Player {
             air_kind: false,
             on_ground: false,
             inputs_down: [false; 4],
-            inputs_pressed: [false; 4],
+            inputs_ready: [false; 4],
         }
     }
 
@@ -38,8 +38,9 @@ impl Player {
 
         self.inputs_down =
             array::from_fn(|i| self.inputs_down[i] || input::is_key_down(KEYBINDS[i]));
-        self.inputs_pressed =
-            array::from_fn(|i| self.inputs_pressed[i] || input::is_key_pressed(KEYBINDS[i]));
+        self.inputs_ready = array::from_fn(|i| {
+            (self.inputs_ready[i] || input::is_key_pressed(KEYBINDS[i])) && self.inputs_down[i]
+        });
     }
 
     pub fn update(&mut self, levels: &mut Levels) {
@@ -69,7 +70,9 @@ impl Player {
                 if self.velocity[1] * self.gravity() > 0.0 {
                     self.on_ground = true;
 
-                    if self.inputs_down[0] {
+                    if self.inputs_ready[0] {
+                        self.inputs_ready[0] = false;
+
                         self.velocity[1] = -15.0 * self.gravity();
                         break 'outer;
                     }
@@ -84,7 +87,9 @@ impl Player {
         self.velocity[0] *= 0.9;
         self.velocity[0] += x_input as f32 / 32.0 / 4.0;
 
-        if self.on_ground && self.inputs_pressed[2] {
+        if self.on_ground && self.inputs_ready[2] {
+            self.inputs_ready[2] = false;
+
             let old_position = self.position;
 
             match self.air_kind {
@@ -101,7 +106,6 @@ impl Player {
         }
 
         self.inputs_down = [false; 4];
-        self.inputs_pressed = [false; 4];
     }
 
     pub fn gravity(&self) -> f32 {
