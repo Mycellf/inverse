@@ -105,8 +105,36 @@ impl Levels {
         self.update_level_offset();
     }
 
+    pub fn insert_level(&mut self, index: usize) {
+        self.num_levels += 1;
+
+        if self.level_index >= index {
+            self.next_level();
+        }
+
+        let mut offset = Self::offset_of_level(index);
+
+        const _: () = assert!(Levels::LEVEL_HEIGHT >= 5);
+
+        for _ in 0..(Self::LEVEL_WIDTH - 1) {
+            for _ in 0..5 {
+                self.tiles.insert(offset, true);
+                offset += 1;
+            }
+
+            for _ in 0..Self::LEVEL_HEIGHT - 5 {
+                self.tiles.insert(offset, false);
+                offset += 1;
+            }
+        }
+    }
+
     pub fn update_level_offset(&mut self) {
         self.x_offset = self.level_index * (Self::LEVEL_WIDTH - 1);
+    }
+
+    fn offset_of_level(level_index: usize) -> usize {
+        level_index * (Self::LEVEL_WIDTH - 1) * Self::LEVEL_HEIGHT
     }
 }
 

@@ -43,6 +43,8 @@ async fn main() {
         }
     }
 
+    levels.insert_level(1);
+
     let mut update_time = 0.0;
 
     loop {
