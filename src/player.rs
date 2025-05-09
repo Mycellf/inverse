@@ -21,7 +21,7 @@ impl Player {
     pub const UPS_SCALE: f32 = Self::UPDATES_PER_SECOND / 30.0;
     pub const MAXIMUM_UPDATES_PER_FRAME: usize = 5;
 
-    pub const CYOTE_FRAMES: u8 = (0.1 * Self::UPDATES_PER_SECOND) as u8;
+    pub const CYOTE_FRAMES: u8 = (0.05 * Self::UPDATES_PER_SECOND) as u8;
 
     pub fn new() -> Self {
         Self {
