@@ -261,7 +261,11 @@ impl FromStr for Levels {
                     'x' => true,
                     'e' => {
                         if limited_gem.is_none() {
-                            limited_gem = Some(tiles.len());
+                            if tiles.last() == Some(&true) {
+                                limited_gem = Some(tiles.len());
+                            } else {
+                                return Err(ParseLevelError::InvalidTileBelowGem);
+                            }
                         } else {
                             return Err(ParseLevelError::DuplicateGem('e'));
                         }
@@ -270,7 +274,11 @@ impl FromStr for Levels {
                     }
                     'E' => {
                         if full_gem.is_none() {
-                            full_gem = Some(tiles.len());
+                            if tiles.last() == Some(&true) {
+                                full_gem = Some(tiles.len());
+                            } else {
+                                return Err(ParseLevelError::InvalidTileBelowGem);
+                            }
                         } else {
                             return Err(ParseLevelError::DuplicateGem('E'));
                         }
@@ -335,4 +343,5 @@ pub enum ParseLevelError {
     InvalidEndingCharacter(char),
     LineEndsEarly(usize),
     DuplicateGem(char),
+    InvalidTileBelowGem,
 }
