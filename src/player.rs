@@ -9,6 +9,7 @@ pub struct Player {
     pub velocity: [f32; 2],
     pub air_kind: bool,
     pub on_ground: bool,
+    pub cyote_time: u8,
     pub inputs_down: [bool; 4],
     pub inputs_ready: [bool; 4],
 }
@@ -20,6 +21,8 @@ impl Player {
     pub const UPS_SCALE: f32 = Self::UPDATES_PER_SECOND / 30.0;
     pub const MAXIMUM_UPDATES_PER_FRAME: usize = 5;
 
+    pub const CYOTE_FRAMES: u8 = (0.1 * Self::UPDATES_PER_SECOND) as u8;
+
     pub fn new() -> Self {
         Self {
             position: [
@@ -29,6 +32,7 @@ impl Player {
             velocity: [0.0, 0.0],
             air_kind: false,
             on_ground: false,
+            cyote_time: 0,
             inputs_down: [false; 4],
             inputs_ready: [false; 4],
         }
@@ -66,21 +70,23 @@ impl Player {
 
         self.on_ground = false;
 
-        'outer: {
-            if y_collision {
-                if self.velocity[1] * self.gravity() > 0.0 {
-                    self.on_ground = true;
+        if self.cyote_time > 0 {
+            self.cyote_time -= 1;
+        }
 
-                    if self.inputs_ready[0] {
-                        self.inputs_ready[0] = false;
-
-                        self.velocity[1] = -7.5 * Self::UPS_SCALE * self.gravity();
-                        break 'outer;
-                    }
-                }
-
-                self.velocity[1] = 0.0;
+        if y_collision {
+            if self.velocity[1] * self.gravity() > 0.0 {
+                self.on_ground = true;
+                self.cyote_time = Self::CYOTE_FRAMES;
             }
+
+            self.velocity[1] = 0.0;
+        }
+
+        if self.inputs_ready[0] && (self.cyote_time > 0 || self.on_ground) {
+            self.inputs_ready[0] = false;
+
+            self.velocity[1] = -7.5 * Self::UPS_SCALE * self.gravity();
         }
 
         let x_input = self.inputs_down[3] as isize - self.inputs_down[1] as isize;
