@@ -1,13 +1,13 @@
 pub mod level;
 pub mod player;
 
-use std::fs;
+use std::{array, f32::consts::TAU, fs};
 
 use macroquad::{
     camera::{self, Camera2D},
     color::{Color, colors},
     input::{self, KeyCode, MouseButton},
-    shapes,
+    shapes::{self, DrawRectangleParams},
     window::{self, Conf},
 };
 
@@ -49,6 +49,7 @@ async fn main() {
     };
 
     let mut editor_enabled = false;
+    let mut gems_active = false;
 
     let mut update_time = 0.0;
 
@@ -168,6 +169,83 @@ async fn main() {
             },
         );
 
+        // Gems
+        if levels.level_index == levels.num_levels - 1 || editor_enabled {
+            gems_active = true;
+        }
+
+        if gems_active {
+            levels.update_animation_counter();
+
+            for (gem, is_full_gem) in [(levels.limited_gem, false), (levels.full_gem, true)] {
+                let Some(gem_index) = gem else {
+                    continue;
+                };
+
+                let Some(gem_position) = levels.position_of_tile_index(gem_index) else {
+                    continue;
+                };
+
+                let enabled = editor_enabled && (!is_full_gem || editor.is_full());
+
+                let offset = if enabled { -0.5 } else { 0.5 };
+                let position = [gem_position[0] + 0.5, gem_position[1] + offset];
+
+                shapes::draw_rectangle_ex(
+                    position[0] - LOGICAL_SCREEN_WIDTH / 2.0,
+                    position[1] - LOGICAL_SCREEN_HEIGHT / 2.0
+                        + (levels.animation * TAU / 8.0).sin() / 8.0,
+                    0.5,
+                    0.5,
+                    DrawRectangleParams {
+                        offset: [0.5, 0.5].into(),
+                        rotation: if enabled {
+                            -levels.animation * TAU / 6.0
+                        } else {
+                            levels.animation * TAU / 6.0
+                        },
+                        color: if enabled {
+                            colors::WHITE
+                        } else {
+                            colors::BLACK
+                        },
+                    },
+                );
+
+                let player_displacement_squared =
+                    array::from_fn::<_, 2, _>(|i| (position[i] - player.position[i]).powi(2));
+
+                let distance_squared = player_displacement_squared.into_iter().sum::<f32>();
+
+                if distance_squared < Player::SIZE.powi(2) {
+                    if is_full_gem {
+                        if enabled {
+                            editor = Editor::Limited {
+                                last_selected: None,
+                            };
+                        } else {
+                            editor_enabled = true;
+
+                            editor.force_undo_temporary_actions(&mut levels);
+                            editor = Editor::Full;
+                        }
+                    } else {
+                        if enabled {
+                            editor_enabled = false;
+
+                            if !editor.is_limited() {
+                                editor = Editor::Limited {
+                                    last_selected: None,
+                                };
+                            }
+                        } else {
+                            editor_enabled = true;
+                        }
+                    }
+                }
+            }
+        }
+
         window::next_frame().await;
     }
 }
@@ -242,6 +320,22 @@ impl Editor {
             }
             Editor::Full => {}
         }
+    }
+
+    /// Returns `true` if the editor is [`Full`].
+    ///
+    /// [`Full`]: Editor::Full
+    #[must_use]
+    pub fn is_full(&self) -> bool {
+        matches!(self, Self::Full)
+    }
+
+    /// Returns `true` if the editor is [`Limited`].
+    ///
+    /// [`Limited`]: Editor::Limited
+    #[must_use]
+    pub fn is_limited(&self) -> bool {
+        matches!(self, Self::Limited { .. })
     }
 }
 

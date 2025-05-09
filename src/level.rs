@@ -12,6 +12,7 @@ pub struct Levels {
     pub x_offset: usize,
     pub limited_gem: Option<usize>,
     pub full_gem: Option<usize>,
+    pub animation: f32,
 }
 
 impl Levels {
@@ -26,7 +27,13 @@ impl Levels {
             x_offset: 0,
             limited_gem: None,
             full_gem: None,
+            animation: 0.0,
         }
+    }
+
+    pub fn update_animation_counter(&mut self) {
+        self.animation += macroquad::time::get_frame_time();
+        self.animation %= 24.0;
     }
 
     pub fn get_from_position(&self, position: [f32; 2]) -> Option<bool> {
@@ -43,7 +50,7 @@ impl Levels {
         let y = tile_index % Self::LEVEL_HEIGHT;
 
         if x >= self.x_offset && x < self.x_offset + Self::LEVEL_WIDTH {
-            Some([x as f32, y as f32])
+            Some([(x - self.x_offset) as f32, y as f32])
         } else if x == 0 && self.level_index == self.num_levels - 1 {
             Some([(Self::LEVEL_WIDTH - 1) as f32, y as f32])
         } else {
@@ -203,14 +210,18 @@ impl Display for Levels {
             for x in 0..(Self::LEVEL_WIDTH - 1) * self.num_levels {
                 let tile_index = x * Self::LEVEL_HEIGHT + y;
 
-                if Some(tile_index) == self.limited_gem {
-                    write!(f, "e")?;
-                    continue;
+                if let Some(gem_index) = self.limited_gem {
+                    if tile_index == gem_index {
+                        write!(f, "e")?;
+                        continue;
+                    }
                 }
 
-                if Some(tile_index) == self.full_gem {
-                    write!(f, "E")?;
-                    continue;
+                if let Some(gem_index) = self.full_gem {
+                    if tile_index == gem_index {
+                        write!(f, "E")?;
+                        continue;
+                    }
                 }
 
                 let tile = self.tiles[x * Self::LEVEL_HEIGHT + y];
@@ -331,6 +342,7 @@ impl FromStr for Levels {
             x_offset: 0,
             limited_gem,
             full_gem,
+            animation: 0.0,
         })
     }
 }
