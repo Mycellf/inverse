@@ -135,6 +135,22 @@ impl Levels {
         }
     }
 
+    pub fn remove_level(&mut self, index: usize) {
+        assert!(index < self.num_levels);
+
+        self.num_levels -= 1;
+
+        if self.level_index > index {
+            self.previous_level();
+        }
+
+        let offset = Self::offset_of_level(index);
+
+        for _ in 0..(Self::LEVEL_WIDTH - 1) * Self::LEVEL_HEIGHT {
+            self.tiles.remove(offset);
+        }
+    }
+
     pub fn update_level_offset(&mut self) {
         self.x_offset = self.level_index * (Self::LEVEL_WIDTH - 1);
     }
