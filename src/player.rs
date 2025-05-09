@@ -15,10 +15,12 @@ pub struct Player {
 }
 
 impl Player {
-    pub const SIZE: f32 = 0.5;
-    pub const GRAVITY: f32 = 1.0 / 32.0 / Self::UPS_SCALE / Self::UPS_SCALE;
     pub const UPDATES_PER_SECOND: f32 = 60.0;
     pub const UPS_SCALE: f32 = Self::UPDATES_PER_SECOND / 30.0;
+
+    pub const SIZE: f32 = 0.5;
+    pub const GRAVITY: f32 = 1.0 / 32.0 / Self::UPS_SCALE / Self::UPS_SCALE;
+
     pub const MAXIMUM_UPDATES_PER_FRAME: usize = 5;
 
     pub const CYOTE_FRAMES: u8 = (0.05 * Self::UPDATES_PER_SECOND) as u8;
