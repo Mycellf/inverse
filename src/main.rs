@@ -22,6 +22,8 @@ const SCREEN_ASPECT: f32 = SCREEN_WIDTH / SCREEN_HEIGHT;
 const LOGICAL_SCREEN_WIDTH: f32 = Levels::LEVEL_WIDTH as f32;
 const LOGICAL_SCREEN_HEIGHT: f32 = Levels::LEVEL_HEIGHT as f32;
 
+const PATH_TO_LEVELS: &str = "levels.txt";
+
 fn window_conf() -> Conf {
     Conf {
         window_title: "Inverse".to_owned(),
@@ -36,7 +38,7 @@ async fn main() {
 
     let mut camera = Camera2D::default();
 
-    let mut levels = fs::read_to_string("levels.txt")
+    let mut levels = fs::read_to_string(PATH_TO_LEVELS)
         .unwrap()
         .parse::<Levels>()
         .unwrap();
@@ -61,6 +63,8 @@ async fn main() {
 
             if let Ok(mouse_index) = levels.index_of_position(mouse_position) {
                 levels[mouse_index] ^= true;
+
+                fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
             }
         }
 
