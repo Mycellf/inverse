@@ -4,6 +4,11 @@ use macroquad::input::{self, KeyCode};
 
 use crate::level::Levels;
 
+const UP: usize = 0;
+const LEFT: usize = 1;
+const DOWN: usize = 2;
+const RIGHT: usize = 3;
+
 pub struct Player {
     pub position: [f32; 2],
     pub velocity: [f32; 2],
@@ -111,18 +116,18 @@ impl Player {
             None
         };
 
-        if self.inputs_ready[0] && (self.cyote_time > 0 || self.on_ground) {
-            self.inputs_ready[0] = false;
+        if self.inputs_ready[UP] && (self.cyote_time > 0 || self.on_ground) {
+            self.inputs_ready[UP] = false;
 
             self.velocity[1] = -7.5 * Self::UPS_SCALE * self.gravity();
         }
 
-        let x_input = self.inputs_down[3] as isize - self.inputs_down[1] as isize;
+        let x_input = self.inputs_down[RIGHT] as isize - self.inputs_down[LEFT] as isize;
 
         self.velocity[0] *= 1.0 - 0.2 / Self::UPS_SCALE;
         self.velocity[0] += x_input as f32 / 32.0 / Self::UPS_SCALE / Self::UPS_SCALE;
 
-        if self.on_ground && self.inputs_ready[2] {
+        if self.on_ground && self.inputs_ready[DOWN] {
             let old_position = self.position;
 
             match self.air_kind {
@@ -139,7 +144,7 @@ impl Player {
                 self.velocity[1] = impact_velocity.unwrap();
 
                 if impact_velocity.unwrap().abs() <= self.gravity().abs() + 10e-5 {
-                    self.inputs_ready[2] = false;
+                    self.inputs_ready[DOWN] = false;
                 }
             }
         }
