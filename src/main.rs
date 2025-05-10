@@ -46,6 +46,8 @@ async fn main() {
     let mut editor_enabled = false;
     let mut gems_active = false;
 
+    let mut cheat_code = Some(0.0);
+
     loop {
         let mut levels = fs::read_to_string(PATH_TO_LEVELS)
             .unwrap()
@@ -58,6 +60,24 @@ async fn main() {
         let mut reset_button_time = 0.0;
 
         loop {
+            if let Some(time) = &mut cheat_code {
+                if input::get_keys_down().len() == 1 && input::is_key_down(KeyCode::Enter) {
+                    *time += macroquad::time::get_frame_time();
+
+                    if *time > 5.0 {
+                        editor = Editor::Full;
+                        editor_enabled = true;
+                        gems_active = true;
+
+                        cheat_code = None;
+                    }
+                } else {
+                    if player.inputs_down.iter().any(|&x| x) {
+                        cheat_code = None;
+                    }
+                }
+            }
+
             if input::is_key_pressed(KeyCode::F11) {
                 fullscreen ^= true;
                 window::set_fullscreen(fullscreen);
