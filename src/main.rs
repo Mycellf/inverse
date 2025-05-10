@@ -8,6 +8,7 @@ use macroquad::{
     color::{Color, colors},
     input::{self, KeyCode, MouseButton},
     shapes::{self, DrawRectangleParams},
+    text::{self, TextDimensions, TextParams},
     window::{self, Conf},
 };
 
@@ -23,6 +24,7 @@ const LOGICAL_SCREEN_WIDTH: f32 = Levels::LEVEL_WIDTH as f32;
 const LOGICAL_SCREEN_HEIGHT: f32 = Levels::LEVEL_HEIGHT as f32;
 
 const PATH_TO_LEVELS: &str = "levels.txt";
+const PATH_TO_LEVELS_BACKUP: &str = "original_levels.txt";
 
 fn window_conf() -> Conf {
     Conf {
@@ -38,215 +40,272 @@ async fn main() {
 
     let mut camera = Camera2D::default();
 
-    let mut levels = fs::read_to_string(PATH_TO_LEVELS)
-        .unwrap()
-        .parse::<Levels>()
-        .unwrap();
-    let mut player = Player::new();
-
     let mut editor = Editor::Limited {
         last_selected: None,
     };
-
     let mut editor_enabled = false;
     let mut gems_active = false;
 
-    let mut update_time = 0.0;
-
     loop {
-        if input::is_key_pressed(KeyCode::F11) {
-            fullscreen ^= true;
-            window::set_fullscreen(fullscreen);
-        }
+        let mut levels = fs::read_to_string(PATH_TO_LEVELS)
+            .unwrap()
+            .parse::<Levels>()
+            .unwrap();
+        let mut player = Player::new();
 
-        if editor_enabled {
-            if input::is_mouse_button_pressed(MouseButton::Left) {
-                let mouse_position =
-                    <[f32; 2]>::from(camera.screen_to_world(input::mouse_position().into()));
+        let mut update_time = 0.0;
 
-                let mouse_position = [
-                    mouse_position[0] + LOGICAL_SCREEN_WIDTH / 2.0,
-                    mouse_position[1] + LOGICAL_SCREEN_HEIGHT / 2.0,
-                ];
+        let mut reset_button_time = 0.0;
 
-                if let Ok(mouse_index) = levels.index_of_position(mouse_position) {
-                    let tile_index = levels.index_of(mouse_index).unwrap();
+        loop {
+            if input::is_key_pressed(KeyCode::F11) {
+                fullscreen ^= true;
+                window::set_fullscreen(fullscreen);
+            }
 
-                    if editor.toggle_tile_index(tile_index, &mut levels, &mut player) {
-                        fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+            if editor_enabled {
+                if input::is_mouse_button_pressed(MouseButton::Left) {
+                    let mouse_position =
+                        <[f32; 2]>::from(camera.screen_to_world(input::mouse_position().into()));
+
+                    let mouse_position = [
+                        mouse_position[0] + LOGICAL_SCREEN_WIDTH / 2.0,
+                        mouse_position[1] + LOGICAL_SCREEN_HEIGHT / 2.0,
+                    ];
+
+                    if let Ok(mouse_index) = levels.index_of_position(mouse_position) {
+                        let tile_index = levels.index_of(mouse_index).unwrap();
+
+                        if editor.toggle_tile_index(tile_index, &mut levels, &mut player) {
+                            fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+                        }
+                    }
+                }
+
+                // if input::is_key_pressed(KeyCode::M) {
+                //     editor = match editor {
+                //         Editor::Limited { .. } => {
+                //             editor.force_undo_temporary_actions(&mut levels);
+                //             Editor::Full
+                //         }
+                //         Editor::Full => Editor::Limited {
+                //             last_selected: None,
+                //         },
+                //     }
+                // }
+
+                // if input::is_key_down(KeyCode::RightShift) || input::is_key_down(KeyCode::LeftShift) {
+                //     if input::is_key_pressed(KeyCode::I) {
+                //         levels.insert_level(levels.level_index + 1);
+                //
+                //         fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+                //     }
+                //
+                //     if input::is_key_pressed(KeyCode::R) && levels.num_levels > 1 {
+                //         levels.remove_level((levels.level_index + 1) % levels.num_levels);
+                //
+                //         fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
+                //     }
+                // }
+            }
+
+            // if input::is_key_pressed(KeyCode::N) {
+            //     editor_enabled ^= true;
+            // }
+
+            update_time += macroquad::time::get_frame_time() * Player::UPDATES_PER_SECOND;
+            let updates = (update_time as usize).min(Player::MAXIMUM_UPDATES_PER_FRAME);
+
+            player.update_input();
+
+            for _ in 0..updates {
+                player.update(&mut levels);
+            }
+
+            update_time -= updates as f32;
+            update_time = update_time.min(1.0);
+
+            let [_, window_height] = update_camera(&mut camera);
+            camera::set_camera(&camera);
+
+            // Clear the background to the color Turbowarp dark mode uses
+            window::clear_background(Color::from_hex(0x111111));
+
+            // Level
+            shapes::draw_rectangle(
+                -LOGICAL_SCREEN_WIDTH / 2.0,
+                LOGICAL_SCREEN_HEIGHT / 2.0,
+                LOGICAL_SCREEN_WIDTH,
+                (window_height - LOGICAL_SCREEN_HEIGHT) / 2.0,
+                colors::WHITE,
+            );
+
+            shapes::draw_rectangle(
+                -LOGICAL_SCREEN_WIDTH / 2.0,
+                -window_height / 2.0,
+                LOGICAL_SCREEN_WIDTH,
+                window_height - (window_height - LOGICAL_SCREEN_HEIGHT) / 2.0,
+                colors::BLACK,
+            );
+
+            for x in 0..Levels::LEVEL_WIDTH {
+                for y in 0..Levels::LEVEL_HEIGHT {
+                    if !levels[[x, y]] {
+                        let position = [
+                            x as f32 - SCREEN_WIDTH / 2.0,
+                            y as f32 - LOGICAL_SCREEN_HEIGHT / 2.0,
+                        ];
+
+                        shapes::draw_rectangle(position[0], position[1], 1.0, 1.0, colors::WHITE);
                     }
                 }
             }
 
-            // if input::is_key_pressed(KeyCode::M) {
-            //     editor = match editor {
-            //         Editor::Limited { .. } => {
-            //             editor.force_undo_temporary_actions(&mut levels);
-            //             Editor::Full
-            //         }
-            //         Editor::Full => Editor::Limited {
-            //             last_selected: None,
-            //         },
-            //     }
-            // }
+            // Player
+            shapes::draw_rectangle(
+                player.position[0] - Player::SIZE / 2.0 - LOGICAL_SCREEN_WIDTH / 2.0,
+                player.position[1] - Player::SIZE / 2.0 - LOGICAL_SCREEN_HEIGHT / 2.0,
+                Player::SIZE,
+                Player::SIZE,
+                match player.air_kind {
+                    true => colors::WHITE,
+                    false => colors::BLACK,
+                },
+            );
 
-            // if input::is_key_down(KeyCode::RightShift) || input::is_key_down(KeyCode::LeftShift) {
-            //     if input::is_key_pressed(KeyCode::I) {
-            //         levels.insert_level(levels.level_index + 1);
-            //
-            //         fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
-            //     }
-            //
-            //     if input::is_key_pressed(KeyCode::R) && levels.num_levels > 1 {
-            //         levels.remove_level((levels.level_index + 1) % levels.num_levels);
-            //
-            //         fs::write(PATH_TO_LEVELS, levels.to_string()).unwrap();
-            //     }
-            // }
-        }
-
-        // if input::is_key_pressed(KeyCode::N) {
-        //     editor_enabled ^= true;
-        // }
-
-        update_time += macroquad::time::get_frame_time() * Player::UPDATES_PER_SECOND;
-        let updates = (update_time as usize).min(Player::MAXIMUM_UPDATES_PER_FRAME);
-
-        player.update_input();
-
-        for _ in 0..updates {
-            player.update(&mut levels);
-        }
-
-        update_time -= updates as f32;
-        update_time = update_time.min(1.0);
-
-        let [_, window_height] = update_camera(&mut camera);
-        camera::set_camera(&camera);
-
-        // Clear the background to the color Turbowarp dark mode uses
-        window::clear_background(Color::from_hex(0x111111));
-
-        // Level
-        shapes::draw_rectangle(
-            -LOGICAL_SCREEN_WIDTH / 2.0,
-            LOGICAL_SCREEN_HEIGHT / 2.0,
-            LOGICAL_SCREEN_WIDTH,
-            (window_height - LOGICAL_SCREEN_HEIGHT) / 2.0,
-            colors::WHITE,
-        );
-
-        shapes::draw_rectangle(
-            -LOGICAL_SCREEN_WIDTH / 2.0,
-            -window_height / 2.0,
-            LOGICAL_SCREEN_WIDTH,
-            window_height - (window_height - LOGICAL_SCREEN_HEIGHT) / 2.0,
-            colors::BLACK,
-        );
-
-        for x in 0..Levels::LEVEL_WIDTH {
-            for y in 0..Levels::LEVEL_HEIGHT {
-                if !levels[[x, y]] {
-                    let position = [
-                        x as f32 - SCREEN_WIDTH / 2.0,
-                        y as f32 - LOGICAL_SCREEN_HEIGHT / 2.0,
-                    ];
-
-                    shapes::draw_rectangle(position[0], position[1], 1.0, 1.0, colors::WHITE);
-                }
+            // Gems
+            if levels.level_index == levels.num_levels - 1 || editor_enabled {
+                gems_active = true;
             }
-        }
 
-        // Player
-        shapes::draw_rectangle(
-            player.position[0] - Player::SIZE / 2.0 - LOGICAL_SCREEN_WIDTH / 2.0,
-            player.position[1] - Player::SIZE / 2.0 - LOGICAL_SCREEN_HEIGHT / 2.0,
-            Player::SIZE,
-            Player::SIZE,
-            match player.air_kind {
-                true => colors::WHITE,
-                false => colors::BLACK,
-            },
-        );
+            if gems_active {
+                levels.update_animation_counter();
 
-        // Gems
-        if levels.level_index == levels.num_levels - 1 || editor_enabled {
-            gems_active = true;
-        }
+                for (gem, is_full_gem) in [(levels.limited_gem, false), (levels.full_gem, true)] {
+                    let Some(gem_index) = gem else {
+                        continue;
+                    };
 
-        if gems_active {
-            levels.update_animation_counter();
+                    let Some(gem_position) = levels.position_of_tile_index(gem_index) else {
+                        continue;
+                    };
 
-            for (gem, is_full_gem) in [(levels.limited_gem, false), (levels.full_gem, true)] {
-                let Some(gem_index) = gem else {
-                    continue;
-                };
+                    let enabled = editor_enabled && (!is_full_gem || editor.is_full());
 
-                let Some(gem_position) = levels.position_of_tile_index(gem_index) else {
-                    continue;
-                };
+                    let offset = if enabled { -0.5 } else { 0.5 };
+                    let position = [gem_position[0] + 0.5, gem_position[1] + offset];
 
-                let enabled = editor_enabled && (!is_full_gem || editor.is_full());
-
-                let offset = if enabled { -0.5 } else { 0.5 };
-                let position = [gem_position[0] + 0.5, gem_position[1] + offset];
-
-                shapes::draw_rectangle_ex(
-                    position[0] - LOGICAL_SCREEN_WIDTH / 2.0,
-                    position[1] - LOGICAL_SCREEN_HEIGHT / 2.0
-                        + (levels.animation * TAU / 8.0).sin() / 8.0,
-                    0.5,
-                    0.5,
-                    DrawRectangleParams {
-                        offset: [0.5, 0.5].into(),
-                        rotation: if enabled {
-                            -levels.animation * TAU / 6.0
-                        } else {
-                            levels.animation * TAU / 6.0
+                    shapes::draw_rectangle_ex(
+                        position[0] - LOGICAL_SCREEN_WIDTH / 2.0,
+                        position[1] - LOGICAL_SCREEN_HEIGHT / 2.0
+                            + (levels.animation * TAU / 8.0).sin() / 8.0,
+                        0.5,
+                        0.5,
+                        DrawRectangleParams {
+                            offset: [0.5, 0.5].into(),
+                            rotation: if enabled {
+                                -levels.animation * TAU / 6.0
+                            } else {
+                                levels.animation * TAU / 6.0
+                            },
+                            color: if enabled {
+                                colors::WHITE
+                            } else {
+                                colors::BLACK
+                            },
                         },
-                        color: if enabled {
-                            colors::WHITE
-                        } else {
-                            colors::BLACK
-                        },
-                    },
-                );
+                    );
 
-                let player_displacement_squared =
-                    array::from_fn::<_, 2, _>(|i| (position[i] - player.position[i]).powi(2));
+                    let player_displacement_squared =
+                        array::from_fn::<_, 2, _>(|i| (position[i] - player.position[i]).powi(2));
 
-                let distance_squared = player_displacement_squared.into_iter().sum::<f32>();
+                    let distance_squared = player_displacement_squared.into_iter().sum::<f32>();
 
-                if distance_squared < Player::SIZE.powi(2) {
-                    if is_full_gem {
-                        if enabled {
-                            editor = Editor::Limited {
-                                last_selected: None,
-                            };
-                        } else {
-                            editor_enabled = true;
-
-                            editor.force_undo_temporary_actions(&mut levels);
-                            editor = Editor::Full;
-                        }
-                    } else {
-                        if enabled {
-                            editor_enabled = false;
-
-                            if !editor.is_limited() {
+                    if distance_squared < Player::SIZE.powi(2) {
+                        if is_full_gem {
+                            if enabled {
                                 editor = Editor::Limited {
                                     last_selected: None,
                                 };
+                            } else {
+                                editor_enabled = true;
+
+                                editor.force_undo_temporary_actions(&mut levels);
+                                editor = Editor::Full;
                             }
                         } else {
-                            editor_enabled = true;
+                            if enabled {
+                                editor_enabled = false;
+
+                                if !editor.is_limited() {
+                                    editor = Editor::Limited {
+                                        last_selected: None,
+                                    };
+                                }
+                            } else {
+                                editor_enabled = true;
+                            }
                         }
                     }
                 }
             }
-        }
 
-        window::next_frame().await;
+            // Check for resetting
+            if editor.is_full() && editor_enabled && input::is_key_down(KeyCode::R) {
+                reset_button_time += macroquad::time::get_frame_time();
+
+                if reset_button_time > 15.0 {
+                    let original_levels = fs::read_to_string(PATH_TO_LEVELS_BACKUP).unwrap();
+                    fs::write(PATH_TO_LEVELS, original_levels).unwrap();
+
+                    break;
+                }
+            } else if reset_button_time > 0.0 {
+                reset_button_time -= macroquad::time::get_frame_time() * 5.0;
+            } else {
+                reset_button_time = 0.0;
+            }
+
+            if reset_button_time > 0.0 {
+                shapes::draw_rectangle(
+                    -LOGICAL_SCREEN_WIDTH / 2.0,
+                    -window_height / 2.0,
+                    LOGICAL_SCREEN_WIDTH,
+                    window_height,
+                    Color {
+                        a: (reset_button_time - 3.75) / 7.5,
+                        ..colors::WHITE
+                    },
+                );
+
+                if reset_button_time > 3.75 {
+                    let message = "RESETTING LEVEL FILE";
+
+                    let (font_size, font_scale, font_scale_aspect) = text::camera_font_scale(1.0);
+
+                    let TextDimensions {
+                        width,
+                        height,
+                        offset_y: _,
+                    } = text::measure_text(message, None, font_size, font_scale);
+
+                    text::draw_text_ex(
+                        message,
+                        -width / 2.0,
+                        -height / 2.0,
+                        TextParams {
+                            font_size,
+                            font_scale: -font_scale,
+                            font_scale_aspect: -font_scale_aspect,
+                            color: colors::BLACK,
+                            ..Default::default()
+                        },
+                    );
+                }
+            }
+
+            window::next_frame().await;
+        }
     }
 }
 
