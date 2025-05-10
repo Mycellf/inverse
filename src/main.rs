@@ -53,7 +53,7 @@ async fn main() {
             .unwrap()
             .parse::<Levels>()
             .unwrap();
-        let mut player = Player::new();
+        let mut player = Player::new(false);
 
         let mut update_time = 0.0;
 

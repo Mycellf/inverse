@@ -12,6 +12,7 @@ pub struct Player {
     pub cyote_time: u8,
     pub inputs_down: [bool; 4],
     pub inputs_ready: [bool; 4],
+    pub keep_velocity_on_inversion: bool,
 }
 
 impl Player {
@@ -25,7 +26,7 @@ impl Player {
 
     pub const CYOTE_FRAMES: u8 = (0.05 * Self::UPDATES_PER_SECOND) as u8;
 
-    pub fn new() -> Self {
+    pub fn new(keep_velocity_on_inversion: bool) -> Self {
         Self {
             position: [
                 crate::LOGICAL_SCREEN_WIDTH / 2.0,
@@ -37,6 +38,7 @@ impl Player {
             cyote_time: 0,
             inputs_down: [false; 4],
             inputs_ready: [false; 4],
+            keep_velocity_on_inversion,
         }
     }
 
@@ -90,14 +92,24 @@ impl Player {
             self.cyote_time -= 1;
         }
 
-        if y_collision {
+        let impact_velocity = if y_collision {
             if self.velocity[1] * self.gravity() > 0.0 {
                 self.on_ground = true;
                 self.cyote_time = Self::CYOTE_FRAMES;
             }
 
+            let impact_velocity = self.velocity[1];
+
             self.velocity[1] = 0.0;
-        }
+
+            if self.keep_velocity_on_inversion {
+                Some(impact_velocity)
+            } else {
+                Some(0.0)
+            }
+        } else {
+            None
+        };
 
         if self.inputs_ready[0] && (self.cyote_time > 0 || self.on_ground) {
             self.inputs_ready[0] = false;
@@ -111,7 +123,9 @@ impl Player {
         self.velocity[0] += x_input as f32 / 32.0 / Self::UPS_SCALE / Self::UPS_SCALE;
 
         if self.on_ground && self.inputs_ready[2] {
-            self.inputs_ready[2] = false;
+            if impact_velocity.unwrap().abs() <= self.gravity().abs() + 10e-5 {
+                self.inputs_ready[2] = false;
+            }
 
             let old_position = self.position;
 
@@ -125,6 +139,8 @@ impl Player {
             if self.is_intersecting(levels) {
                 self.position = old_position;
                 self.air_kind ^= true;
+            } else {
+                self.velocity[1] = impact_velocity.unwrap();
             }
         }
 
