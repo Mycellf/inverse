@@ -24,6 +24,7 @@ const LOGICAL_SCREEN_WIDTH: f32 = Levels::LEVEL_WIDTH as f32;
 const LOGICAL_SCREEN_HEIGHT: f32 = Levels::LEVEL_HEIGHT as f32;
 
 const PATH_TO_LEVELS: &str = "levels.txt";
+const CHEAT_CODE: &str = "413 38D";
 
 fn window_conf() -> Conf {
     Conf {
@@ -45,7 +46,7 @@ async fn main() {
     let mut editor_enabled = false;
     let mut gems_active = false;
 
-    let mut cheat_code = Some(0.0);
+    let mut cheat_code = Some(String::new());
 
     loop {
         let mut levels = fs::read_to_string(PATH_TO_LEVELS)
@@ -59,19 +60,16 @@ async fn main() {
         let mut reset_button_time = 0.0;
 
         loop {
-            if let Some(time) = &mut cheat_code {
-                if input::get_keys_down().len() == 1 && input::is_key_down(KeyCode::Enter) {
-                    *time += macroquad::time::get_frame_time();
+            if let Some(code) = &mut cheat_code {
+                if let Some(character) = input::get_char_pressed() {
+                    code.push(character);
 
-                    if *time > 5.0 {
-                        editor = Editor::Full;
-                        editor_enabled = true;
-                        gems_active = true;
+                    if code.len() >= CHEAT_CODE.len() {
+                        if code == CHEAT_CODE {
+                            editor = Editor::Full;
+                            editor_enabled = true;
+                        }
 
-                        cheat_code = None;
-                    }
-                } else {
-                    if player.inputs_down.iter().any(|&x| x) {
                         cheat_code = None;
                     }
                 }
