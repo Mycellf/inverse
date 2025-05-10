@@ -195,27 +195,6 @@ async fn main() {
                     let offset = if enabled { -0.5 } else { 0.5 };
                     let position = [gem_position[0] + 0.5, gem_position[1] + offset];
 
-                    shapes::draw_rectangle_ex(
-                        position[0] - LOGICAL_SCREEN_WIDTH / 2.0,
-                        position[1] - LOGICAL_SCREEN_HEIGHT / 2.0
-                            + (levels.animation * TAU / 8.0).sin() / 8.0,
-                        0.5,
-                        0.5,
-                        DrawRectangleParams {
-                            offset: [0.5, 0.5].into(),
-                            rotation: if enabled {
-                                -levels.animation * TAU / 6.0
-                            } else {
-                                levels.animation * TAU / 6.0
-                            },
-                            color: if enabled {
-                                colors::WHITE
-                            } else {
-                                colors::BLACK
-                            },
-                        },
-                    );
-
                     let player_displacement_squared =
                         array::from_fn::<_, 2, _>(|i| (position[i] - player.position[i]).powi(2));
 
@@ -247,6 +226,32 @@ async fn main() {
                             }
                         }
                     }
+
+                    let enabled = editor_enabled && (!is_full_gem || editor.is_full());
+
+                    let offset = if enabled { -0.5 } else { 0.5 };
+                    let position = [gem_position[0] + 0.5, gem_position[1] + offset];
+
+                    shapes::draw_rectangle_ex(
+                        position[0] - LOGICAL_SCREEN_WIDTH / 2.0,
+                        position[1] - LOGICAL_SCREEN_HEIGHT / 2.0
+                            + (levels.animation * TAU / 8.0).sin() / 8.0,
+                        0.5,
+                        0.5,
+                        DrawRectangleParams {
+                            offset: [0.5, 0.5].into(),
+                            rotation: if enabled {
+                                -levels.animation * TAU / 6.0
+                            } else {
+                                levels.animation * TAU / 6.0
+                            },
+                            color: if enabled {
+                                colors::WHITE
+                            } else {
+                                colors::BLACK
+                            },
+                        },
+                    );
                 }
             }
 
