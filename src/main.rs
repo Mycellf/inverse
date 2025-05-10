@@ -259,11 +259,15 @@ async fn main() {
             if editor.is_full() && editor_enabled && input::is_key_down(KeyCode::R) {
                 reset_button_time += macroquad::time::get_frame_time();
 
-                if reset_button_time > 15.0 {
-                    let original_levels = fs::read_to_string(PATH_TO_LEVELS_BACKUP).unwrap();
-                    fs::write(PATH_TO_LEVELS, original_levels).unwrap();
+                if reset_button_time >= 15.0 {
+                    reset_button_time = 15.0;
 
-                    break;
+                    if input::is_key_pressed(KeyCode::Enter) {
+                        let original_levels = fs::read_to_string(PATH_TO_LEVELS_BACKUP).unwrap();
+                        fs::write(PATH_TO_LEVELS, original_levels).unwrap();
+
+                        break;
+                    }
                 }
             } else if reset_button_time > 0.0 {
                 reset_button_time -= macroquad::time::get_frame_time() * 5.0;
@@ -284,7 +288,11 @@ async fn main() {
                 );
 
                 if reset_button_time > 3.75 {
-                    let message = "RESETTING LEVEL FILE";
+                    let message = if reset_button_time == 15.0 {
+                        "PRESS ENTER TO RESET"
+                    } else {
+                        "RESETTING LEVEL FILE"
+                    };
 
                     let (font_size, font_scale, font_scale_aspect) = text::camera_font_scale(1.0);
 
