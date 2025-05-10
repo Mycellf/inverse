@@ -123,10 +123,6 @@ impl Player {
         self.velocity[0] += x_input as f32 / 32.0 / Self::UPS_SCALE / Self::UPS_SCALE;
 
         if self.on_ground && self.inputs_ready[2] {
-            if impact_velocity.unwrap().abs() <= self.gravity().abs() + 10e-5 {
-                self.inputs_ready[2] = false;
-            }
-
             let old_position = self.position;
 
             match self.air_kind {
@@ -141,6 +137,10 @@ impl Player {
                 self.air_kind ^= true;
             } else {
                 self.velocity[1] = impact_velocity.unwrap();
+
+                if impact_velocity.unwrap().abs() <= self.gravity().abs() + 10e-5 {
+                    self.inputs_ready[2] = false;
+                }
             }
         }
 
