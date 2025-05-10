@@ -276,8 +276,8 @@ async fn main() {
             if editor.is_full() && editor_enabled && input::is_key_down(KeyCode::R) {
                 reset_button_time += macroquad::time::get_frame_time();
 
-                if reset_button_time >= 15.0 {
-                    reset_button_time = 15.0;
+                if reset_button_time >= 5.0 {
+                    reset_button_time = 5.0;
 
                     if input::is_key_pressed(KeyCode::Enter) {
                         fs::write(PATH_TO_LEVELS, include_str!("../original_levels.txt")).unwrap();
@@ -298,39 +298,40 @@ async fn main() {
                     LOGICAL_SCREEN_WIDTH,
                     window_height,
                     Color {
-                        a: (reset_button_time - 3.75) / 7.5,
+                        a: reset_button_time / 5.0,
                         ..colors::WHITE
                     },
                 );
 
-                if reset_button_time > 3.75 {
-                    let message = if reset_button_time == 15.0 {
-                        "PRESS ENTER TO RESET"
-                    } else {
-                        "RESETTING LEVEL FILE"
-                    };
+                let message = if reset_button_time == 5.0 {
+                    "PRESS ENTER TO RESET"
+                } else {
+                    "RESETTING LEVEL FILE"
+                };
 
-                    let (font_size, font_scale, font_scale_aspect) = text::camera_font_scale(1.0);
+                let (font_size, font_scale, font_scale_aspect) = text::camera_font_scale(1.0);
 
-                    let TextDimensions {
-                        width,
-                        height,
-                        offset_y: _,
-                    } = text::measure_text(message, None, font_size, font_scale);
+                let TextDimensions {
+                    width,
+                    height,
+                    offset_y: _,
+                } = text::measure_text(message, None, font_size, font_scale);
 
-                    text::draw_text_ex(
-                        message,
-                        -width / 2.0,
-                        -height / 2.0,
-                        TextParams {
-                            font_size,
-                            font_scale: -font_scale,
-                            font_scale_aspect: -font_scale_aspect,
-                            color: colors::BLACK,
-                            ..Default::default()
+                text::draw_text_ex(
+                    message,
+                    -width / 2.0,
+                    -height / 2.0,
+                    TextParams {
+                        font_size,
+                        font_scale: -font_scale,
+                        font_scale_aspect: -font_scale_aspect,
+                        color: Color {
+                            a: reset_button_time - 1.0,
+                            ..colors::BLACK
                         },
-                    );
-                }
+                        ..Default::default()
+                    },
+                );
             }
 
             window::next_frame().await;
