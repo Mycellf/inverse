@@ -1,4 +1,4 @@
-use std::array;
+use std::{array, sync::LazyLock};
 
 use macroquad::input::{self, KeyCode};
 
@@ -41,12 +41,26 @@ impl Player {
     }
 
     pub fn update_input(&mut self) {
-        const KEYBINDS: [KeyCode; 4] = [KeyCode::W, KeyCode::A, KeyCode::S, KeyCode::D];
+        static KEYBINDS: LazyLock<[Vec<KeyCode>; 4]> = LazyLock::new(|| {
+            [
+                vec![KeyCode::W, KeyCode::Up, KeyCode::Space],
+                vec![KeyCode::A, KeyCode::Left],
+                vec![KeyCode::S, KeyCode::Down],
+                vec![KeyCode::D, KeyCode::Right],
+            ]
+        });
 
-        self.inputs_down =
-            array::from_fn(|i| self.inputs_down[i] || input::is_key_down(KEYBINDS[i]));
+        fn is_down(keys: &[KeyCode]) -> bool {
+            keys.iter().any(|key| input::is_key_down(*key))
+        }
+
+        fn is_pressed(keys: &[KeyCode]) -> bool {
+            keys.iter().any(|key| input::is_key_pressed(*key))
+        }
+
+        self.inputs_down = array::from_fn(|i| self.inputs_down[i] || is_down(&KEYBINDS[i]));
         self.inputs_ready = array::from_fn(|i| {
-            (self.inputs_ready[i] || input::is_key_pressed(KEYBINDS[i])) && self.inputs_down[i]
+            (self.inputs_ready[i] || is_pressed(&KEYBINDS[i])) && self.inputs_down[i]
         });
     }
 
