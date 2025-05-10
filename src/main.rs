@@ -24,7 +24,6 @@ const LOGICAL_SCREEN_WIDTH: f32 = Levels::LEVEL_WIDTH as f32;
 const LOGICAL_SCREEN_HEIGHT: f32 = Levels::LEVEL_HEIGHT as f32;
 
 const PATH_TO_LEVELS: &str = "levels.txt";
-const PATH_TO_LEVELS_BACKUP: &str = "original_levels.txt";
 
 fn window_conf() -> Conf {
     Conf {
@@ -283,8 +282,7 @@ async fn main() {
                     reset_button_time = 15.0;
 
                     if input::is_key_pressed(KeyCode::Enter) {
-                        let original_levels = fs::read_to_string(PATH_TO_LEVELS_BACKUP).unwrap();
-                        fs::write(PATH_TO_LEVELS, original_levels).unwrap();
+                        fs::write(PATH_TO_LEVELS, include_str!("../original_levels.txt")).unwrap();
 
                         break;
                     }
